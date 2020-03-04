@@ -228,5 +228,6 @@ int maths (int data1, char **data2)
 
         /* clean up the semaphore we allocated earlier */
         sem_destroy(finished);
+        sem_destroy(opLock);
         return 0;
 }
