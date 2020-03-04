@@ -13,7 +13,12 @@
 */
 
 data_item_t * item_buffer[BUFFER_SIZE];
+int head;
+int tail;
 
+struct semaphore *producer_ready;
+struct semaphore *consumer_ready;
+struct lock *buffer_lock;
 
 /* consumer_receive() is called by a consumer to request more data. It
    should block on a sync primitive if no data is available in your
@@ -21,23 +26,18 @@ data_item_t * item_buffer[BUFFER_SIZE];
 
 data_item_t * consumer_receive(void)
 {
-        data_item_t * item;
+   data_item_t * item;
 
+   P(consumer_ready);
 
-        /*****************
-         * Remove everything just below when you start.
-         * The following code is just to trick the compiler to compile
-         * the incomplete initial code
-         ****************/
+   lock_acquire(buffer_lock);
+   item = item_buffer[head];
+   head = (head + 1) % BUFFER_SIZE;
+   lock_release(buffer_lock);
 
-        (void) item_buffer;
-        item = NULL;
+   V(producer_ready);
 
-        /******************
-         * Remove above here
-         */
-
-        return item;
+   return item;
 }
 
 /* procucer_send() is called by a producer to store data in your
@@ -46,7 +46,14 @@ data_item_t * consumer_receive(void)
 
 void producer_send(data_item_t *item)
 {
-        (void) item; /* Remove this when you add your code */
+   P(producer_ready);
+
+   lock_acquire(buffer_lock);
+   item_buffer[tail] = item;
+   tail = (tail + 1) % BUFFER_SIZE;
+   lock_release(buffer_lock);
+
+   V(consumer_ready);
 }
 
 
@@ -57,9 +64,17 @@ void producer_send(data_item_t *item)
 
 void producerconsumer_startup(void)
 {
+   head = 0;
+   tail = 0;
+   producer_ready = sem_create("producer_ready", BUFFER_SIZE);
+   consumer_ready = sem_create("consumer_ready", 0);
+   buffer_lock = lock_create("buffer_lock");
 }
 
 /* Perform any clean-up you need here */
 void producerconsumer_shutdown(void)
 {
+   sem_destroy(producer_ready);
+   sem_destroy(consumer_ready);
+   lock_destroy(buffer_lock);
 }
