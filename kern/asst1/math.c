@@ -171,7 +171,7 @@ int maths (int data1, char **data2)
          * ********************************************************************
          */
 
-        opLock = sem_create("operation lock", 1);
+        opLock = sem_create("opLock", 1);
 
         if (opLock == NULL) {
                 panic("maths: sem create failed");
