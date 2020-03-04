@@ -36,8 +36,8 @@ static void bill(void * unusedpointer, unsigned long unusedint)
 
                 lock_release(lockb);
 
-                lock_acquire(locka);
                 lock_acquire(lockb);
+                lock_acquire(locka);
 
                                         /* Bill now holds both locks and can do
                                          what ever bill needs to do while holding
