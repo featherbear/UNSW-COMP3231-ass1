@@ -34,6 +34,9 @@ unsigned long int adder_counters[NADDERS];
  */
 struct semaphore *finished;
 
+// Use locking semaphore
+struct semaphore *opLock;
+
 
 /*
  * **********************************************************************
@@ -75,23 +78,28 @@ static void adder(void * unusedpointer, unsigned long addernumber)
         (void) unusedpointer; /* remove this line if variable is used */
 
 
-
         while (flag) {
                 /* loop doing increments until we achieve the overall number
                    of increments */
+                
+                P(opLock);
 
                 a = counter;
-                if (a < NADDS) {
 
+                if (a < NADDS) {
+                 
                         counter = counter + 1;
 
                         math_test_1(addernumber); /* We use this for testing, please leave this here. */
 
                         b = counter;
+                        
+                        V(opLock);
 
                         math_test_2(addernumber); /* We use this for testing, please leave this here.
                                                    * Also note it should NOT execute mutually exclusively
                                                    */
+
 
                         /*
                          * now count the number of increments we perform  for statistics.
@@ -110,9 +118,10 @@ static void adder(void * unusedpointer, unsigned long addernumber)
                         }
                 } else {
                         flag = 0;
+                        V(opLock);
                 }
+                 
         }
-
         /* signal the main thread we have finished and then exit */
         V(finished);
 
@@ -161,6 +170,12 @@ int maths (int data1, char **data2)
          * INSERT ANY INITIALISATION CODE YOU REQUIRE HERE
          * ********************************************************************
          */
+
+        opLock = sem_create("operation lock", 1);
+
+        if (opLock == NULL) {
+                panic("maths: sem create failed");
+        }
 
 
         /*
